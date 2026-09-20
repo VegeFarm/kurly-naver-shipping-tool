@@ -17,9 +17,6 @@ def _int(name: str, default: int) -> int:
 
 @dataclass(frozen=True)
 class Settings:
-    app_username: str = os.getenv("APP_USERNAME", "admin")
-    app_password: str = os.getenv("APP_PASSWORD", "")
-
     excel_password: str = os.getenv("EXCEL_PASSWORD", "0000")
     output_excel_password: str = os.getenv("OUTPUT_EXCEL_PASSWORD", "")
 

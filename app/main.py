@@ -1,14 +1,10 @@
 from __future__ import annotations
 
-import base64
-import hashlib
-import hmac
-import os
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from pydantic import BaseModel
 
 from .config import settings
@@ -40,37 +36,6 @@ app = FastAPI(title="새벽배송/익일배송 분류", docs_url=None, redoc_url
 def startup():
     init_db()
 
-
-def _unauthorized():
-    return PlainTextResponse(
-        "Authentication required",
-        status_code=401,
-        headers={"WWW-Authenticate": 'Basic realm="Shipping Tool", charset="UTF-8"'},
-    )
-
-
-@app.middleware("http")
-async def basic_auth(request: Request, call_next):
-    if request.url.path == "/healthz":
-        return await call_next(request)
-    if not settings.app_password:
-        return PlainTextResponse(
-            "APP_PASSWORD 환경변수가 설정되지 않았습니다.", status_code=503
-        )
-    auth = request.headers.get("Authorization", "")
-    if not auth.startswith("Basic "):
-        return _unauthorized()
-    try:
-        raw = base64.b64decode(auth[6:]).decode("utf-8")
-        username, password = raw.split(":", 1)
-    except Exception:
-        return _unauthorized()
-    if not (
-        hmac.compare_digest(username, settings.app_username)
-        and hmac.compare_digest(password, settings.app_password)
-    ):
-        return _unauthorized()
-    return await call_next(request)
 
 
 @app.get("/healthz")
@@ -155,7 +120,12 @@ async def analyze(file: UploadFile = File(...)):
     unique_addresses: dict[str, str] = {}
     for row in rows:
         unique_addresses.setdefault(row.address_key, row.address)
-    policy_results = await kurly_client.lookup_many(unique_addresses)
+    try:
+        policy_results = await kurly_client.lookup_many(unique_addresses)
+    except Exception as exc:
+        # 인증 실패, IP 화이트리스트, Base URL 오류 등 컬리 연결 문제를
+        # 브라우저에서 바로 확인할 수 있도록 안전한 오류 메시지로 전달한다.
+        raise HTTPException(status_code=502, detail=f"컬리 API 연결 실패: {exc}") from exc
 
     dawn_rows = []
     day_rows = []
