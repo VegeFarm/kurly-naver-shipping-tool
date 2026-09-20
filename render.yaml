@@ -14,7 +14,9 @@ services:
         value: ""
       - key: DATABASE_URL
         sync: false
-      - key: KURLY_BASE_URL
+      - key: KURLY_AUTH_BASE_URL
+        value: https://authapi-kls.kurly.com
+      - key: KURLY_API_BASE_URL
         sync: false
       - key: KURLY_CLIENT_ID
         sync: false
