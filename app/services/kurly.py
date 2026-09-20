@@ -79,11 +79,25 @@ class KurlyClient:
         self._token_lock = asyncio.Lock()
 
     def configured(self) -> bool:
-        return bool(settings.kurly_base_url and settings.kurly_client_id and settings.kurly_secret_key)
+        return bool(
+            settings.kurly_auth_base_url
+            and settings.kurly_api_base_url
+            and settings.kurly_client_id
+            and settings.kurly_secret_key
+        )
 
     async def _issue_token(self, force: bool = False) -> str:
         if not self.configured():
-            raise RuntimeError("KURLY_BASE_URL / KURLY_CLIENT_ID / KURLY_SECRET_KEY 환경변수를 설정하세요.")
+            missing = []
+            if not settings.kurly_auth_base_url:
+                missing.append("KURLY_AUTH_BASE_URL")
+            if not settings.kurly_api_base_url:
+                missing.append("KURLY_API_BASE_URL")
+            if not settings.kurly_client_id:
+                missing.append("KURLY_CLIENT_ID")
+            if not settings.kurly_secret_key:
+                missing.append("KURLY_SECRET_KEY")
+            raise RuntimeError("컬리 환경변수를 설정하세요: " + ", ".join(missing))
         if not force and self._token and time.time() < self._token_expire_at - 60:
             return self._token
 
@@ -97,11 +111,61 @@ class KurlyClient:
             if settings.kurly_solution_code:
                 body["solutionCode"] = settings.kurly_solution_code
 
-            async with httpx.AsyncClient(timeout=settings.kurly_timeout_seconds) as client:
-                resp = await client.post(f"{settings.kurly_base_url}/auth/token", json=body)
+            token_url = f"{settings.kurly_auth_base_url}/auth/token"
+            async with httpx.AsyncClient(
+                timeout=settings.kurly_timeout_seconds,
+                follow_redirects=False,
+            ) as client:
+                try:
+                    resp = await client.post(
+                        token_url,
+                        json=body,
+                        headers={
+                            "Accept": "application/json",
+                            "Content-Type": "application/json",
+                        },
+                    )
+                except httpx.HTTPError as exc:
+                    raise RuntimeError(f"컬리 토큰 서버 연결 실패: {exc}") from exc
+
+            # API 호스트가 아닌 웹 콘솔 주소를 넣었을 때 로그인 페이지 등으로
+            # 리다이렉트되는 경우가 있어 JSON 파싱 전에 명확히 보여준다.
+            if 300 <= resp.status_code < 400:
+                location = resp.headers.get("location", "")
+                raise RuntimeError(
+                    "컬리 토큰 URL이 리다이렉트되었습니다 "
+                    f"(HTTP {resp.status_code}, Location={location or '없음'}). "
+                    "KURLY_AUTH_BASE_URL이 실제 PROD 인증 API 호스트인지 확인하세요."
+                )
+
+            content_type = resp.headers.get("content-type", "")
+            preview = (resp.text or "").strip().replace("\n", " ")[:500]
             if resp.status_code >= 400:
-                raise RuntimeError(f"컬리 토큰 발급 실패 ({resp.status_code}): {resp.text[:300]}")
-            token, expires = _find_token(resp.json())
+                raise RuntimeError(
+                    f"컬리 토큰 발급 실패 (HTTP {resp.status_code}, "
+                    f"Content-Type={content_type or '없음'}): {preview or '[응답 본문 없음]'}"
+                )
+
+            if not resp.content:
+                raise RuntimeError(
+                    "컬리 토큰 발급 서버가 성공 상태를 반환했지만 응답 본문이 비어 있습니다. "
+                    f"URL={token_url}, HTTP={resp.status_code}, "
+                    f"Content-Type={content_type or '없음'}. "
+                    "KURLY_AUTH_BASE_URL과 Render Outbound IP 화이트리스트를 확인하세요."
+                )
+
+            try:
+                payload = resp.json()
+            except ValueError as exc:
+                raise RuntimeError(
+                    "컬리 토큰 응답이 JSON이 아닙니다. "
+                    f"URL={token_url}, HTTP={resp.status_code}, "
+                    f"Content-Type={content_type or '없음'}, "
+                    f"응답={preview or '[응답 본문 없음]'}. "
+                    "KURLY_AUTH_BASE_URL이 실제 PROD 인증 API 호스트인지 확인하세요."
+                ) from exc
+
+            token, expires = _find_token(payload)
             self._token = token
             self._token_expire_at = time.time() + max(120, expires)
             return token
@@ -112,7 +176,9 @@ class KurlyClient:
 
         token = await self._issue_token()
         body = {settings.kurly_policy_address_field: address.strip()}
-        url = f"{settings.kurly_base_url}/api/delivery-agency/v1/delivery-policies"
+        if not settings.kurly_api_base_url:
+            return PolicyResult("UNKNOWN", "KURLY_API_BASE_URL 환경변수를 설정하세요.")
+        url = f"{settings.kurly_api_base_url}/api/delivery-agency/v1/delivery-policies"
 
         async with httpx.AsyncClient(timeout=settings.kurly_timeout_seconds) as client:
             for attempt in range(4):
