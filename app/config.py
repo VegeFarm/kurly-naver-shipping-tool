@@ -22,7 +22,11 @@ class Settings:
 
     database_url: str = os.getenv("DATABASE_URL", "sqlite:///./local.db")
 
-    kurly_base_url: str = os.getenv("KURLY_BASE_URL", "").rstrip("/")
+    # 컬리 인증 서버와 배송 API 서버는 서로 다른 호스트를 사용할 수 있어 분리합니다.
+    kurly_auth_base_url: str = os.getenv(
+        "KURLY_AUTH_BASE_URL", "https://authapi-kls.kurly.com"
+    ).rstrip("/")
+    kurly_api_base_url: str = os.getenv("KURLY_API_BASE_URL", "").rstrip("/")
     kurly_client_id: str = os.getenv("KURLY_CLIENT_ID", "")
     kurly_secret_key: str = os.getenv("KURLY_SECRET_KEY", "")
     kurly_solution_code: str = os.getenv("KURLY_SOLUTION_CODE", "")
