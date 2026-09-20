@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>새벽배송 / 익일배송 분류</title>
+<style>
+:root{font-family:Inter,Apple SD Gothic Neo,Pretendard,Arial,sans-serif;color:#17202a;background:#f5f7f9}
+*{box-sizing:border-box} body{margin:0} .wrap{max-width:980px;margin:36px auto;padding:0 18px 50px}
+h1{font-size:28px;margin:0 0 6px}.sub{color:#68737d;margin:0 0 24px}.card{background:#fff;border:1px solid #e4e8ec;border-radius:14px;padding:20px;margin:14px 0;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+.upload{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.upload input{flex:1;min-width:260px;border:1px solid #d7dde3;border-radius:10px;padding:11px;background:#fff}
+button,.btn{border:0;border-radius:10px;padding:11px 15px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block;font-size:14px}.primary{background:#15191d;color:#fff}.secondary{background:#eef1f4;color:#20262c}.danger{background:#fff0f0;color:#b42318}.green{background:#eaf8ef;color:#116b37}.blue{background:#edf5ff;color:#1557a0}.muted{color:#75808a}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:720px){.grid{grid-template-columns:1fr}}
+.big{font-size:30px;font-weight:800;margin:4px 0}.label{font-weight:800;font-size:18px}.stats{font-size:13px;color:#66717b;line-height:1.7}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+textarea{width:100%;height:180px;border:1px solid #d7dde3;border-radius:10px;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;line-height:1.6;resize:vertical;background:#fbfcfd}
+.hidden{display:none!important}.status{padding:12px 14px;border-radius:10px;margin-top:12px;background:#eef4fb;color:#24435f;white-space:pre-wrap}.error{background:#fff0f0;color:#9f1d1d}.ok{background:#ecf9f0;color:#146c37}
+hr{border:0;border-top:1px solid #edf0f2;margin:18px 0}.pill{display:inline-block;background:#f0f2f4;border-radius:999px;padding:4px 8px;font-size:12px;color:#58636d}.warn{background:#fff7e8;color:#8a5a00}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}.modalBox{background:#fff;max-width:520px;width:100%;border-radius:16px;padding:22px}.modalBox h3{margin-top:0}.modalActions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
+small{color:#75808a}.topline{display:flex;justify-content:space-between;gap:10px;align-items:center}.unknownList{max-height:150px;overflow:auto;font-size:12px;color:#7a3d00;background:#fff8ed;border-radius:8px;padding:8px}.unknownList div{padding:5px 0;border-bottom:1px solid #f2e4cf}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>새벽배송 / 익일배송 분류</h1>
+  <p class="sub">네이버 주문 엑셀 → 컬리 배송 가능 여부 판정 → 새벽배송 발주확인 / 익일배송 연락·엑셀</p>
+
+  <div class="card">
+    <div class="upload">
+      <input id="file" type="file" accept=".xlsx">
+      <button id="analyzeBtn" class="primary">분석하기</button>
+    </div>
+    <div id="analyzeStatus" class="status hidden"></div>
+    <small>엑셀 비밀번호는 서버 환경변수(EXCEL_PASSWORD, 기본 0000)로 처리됩니다. 업로드 파일은 작업용 임시공간에만 사용합니다.</small>
+  </div>
+
+  <div id="results" class="hidden">
+    <div class="grid">
+      <div class="card">
+        <div class="topline"><span class="label">새벽배송</span><span class="pill green">컬리 DAWN</span></div>
+        <div class="big"><span id="dawnCount">0</span>건</div>
+        <div id="dawnStats" class="stats"></div>
+        <div class="actions"><button id="naverConfirmBtn" class="primary">네이버 발주확인</button></div>
+        <div id="naverStatus" class="status hidden"></div>
+      </div>
+
+      <div class="card">
+        <div class="topline"><span class="label">익일배송</span><span class="pill blue">컬리 DAY</span></div>
+        <div class="big"><span id="nextdayCount">0</span>건</div>
+        <div id="nextdayStats" class="stats"></div>
+        <div class="actions">
+          <button id="copyBtn" class="secondary">연락처 전체 복사</button>
+          <button id="markBtn" class="secondary">연락완료 처리</button>
+          <a id="downloadBtn" class="btn primary" href="#">익일배송 엑셀 다운로드</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="topline"><span class="label">신규 연락 대상</span><span id="contactCount" class="pill">0개 연락처</span></div>
+      <p class="stats">구매자연락처만 표시합니다. 010·02·031 등 번호 종류와 관계없이 이름은 붙이지 않으며, 동일 번호는 한 번만 표시합니다.</p>
+      <textarea id="contacts" readonly placeholder="신규 익일배송 연락처가 여기에 표시됩니다."></textarea>
+      <div id="contactStatus" class="status hidden"></div>
+    </div>
+
+    <div id="unknownCard" class="card hidden">
+      <div class="topline"><span class="label">판정 실패</span><span id="unknownCount" class="pill warn">0곳</span></div>
+      <p class="stats">API 오류/주소 인식 실패 건은 새벽배송이나 익일배송에 임의 포함하지 않습니다.</p>
+      <div id="unknownList" class="unknownList"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="topline"><span class="label">익일배송 연락 이력</span><span id="historyCount" class="pill">0건</span></div>
+    <div id="historyStats" class="stats">불러오는 중...</div>
+    <div class="actions"><button id="resetBtn" class="danger">연락 이력 초기화</button></div>
+    <small>자동 만료되지 않습니다. 직접 초기화하기 전까지 DB에 유지됩니다.</small>
+  </div>
+</div>
+
+<div id="modal" class="modal hidden">
+  <div class="modalBox">
+    <h3 id="modalTitle"></h3>
+    <div id="modalText" class="stats"></div>
+    <div class="modalActions">
+      <button id="modalCancel" class="secondary">취소</button>
+      <button id="modalOk" class="primary">확인</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentJob=null;
+const $=id=>document.getElementById(id);
+function showStatus(el,text,type=''){el.textContent=text;el.className='status '+type;el.classList.remove('hidden')}
+function hideStatus(el){el.classList.add('hidden')}
+async function api(url,opts={}){const r=await fetch(url,opts);let data;try{data=await r.json()}catch{data={detail:await r.text()}}if(!r.ok)throw new Error(data.detail||data.message||`HTTP ${r.status}`);return data}
+function fmtDate(s){if(!s)return '-';return new Date(s).toLocaleString('ko-KR')}
+function modal(title,text,okText='확인',danger=false){return new Promise(resolve=>{ $('modalTitle').textContent=title;$('modalText').innerHTML=text;$('modalOk').textContent=okText;$('modalOk').className=danger?'danger':'primary';$('modal').classList.remove('hidden'); const close=v=>{$('modal').classList.add('hidden');$('modalOk').onclick=null;$('modalCancel').onclick=null;resolve(v)};$('modalOk').onclick=()=>close(true);$('modalCancel').onclick=()=>close(false);})}
+function render(data){currentJob=data;$('results').classList.remove('hidden');$('dawnCount').textContent=data.summary.dawn_product_orders;$('dawnStats').innerHTML=`배송지 ${data.summary.dawn_addresses}곳 · 로컬 발주완료 ${data.naver.already_confirmed_locally}건 · 발주대기 ${data.naver.pending_product_orders}건`;$('nextdayCount').textContent=data.summary.nextday_product_orders;$('nextdayStats').innerHTML=`주문 ${data.summary.nextday_orders}건 · 배송지 ${data.summary.nextday_addresses}곳 · 이미 연락완료 ${data.contacts.already_contacted_order_count}건`;$('contacts').value=data.contacts.phones.join('\n');$('contactCount').textContent=`${data.contacts.phone_count}개 연락처`;$('downloadBtn').href=`/api/jobs/${data.job_id}/nextday.xlsx`;if(data.unknowns.length){$('unknownCard').classList.remove('hidden');$('unknownCount').textContent=`${data.summary.unknown_addresses}곳`;$('unknownList').innerHTML=data.unknowns.map(x=>`<div>${escapeHtml(x.zip_code+' '+x.address)}<br><span class="muted">${escapeHtml(x.error)}</span></div>`).join('')}else{$('unknownCard').classList.add('hidden')}renderHistory(data.contact_history)}
+function escapeHtml(s){return String(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function renderHistory(h){$('historyCount').textContent=`${h.count}건`;$('historyStats').textContent=h.count?`가장 오래된 기록 ${fmtDate(h.oldest)} · 최근 기록 ${fmtDate(h.newest)}`:'저장된 연락 이력이 없습니다.'}
+async function refreshJob(){if(!currentJob)return;const d=await api(`/api/jobs/${currentJob.job_id}`);render(d)}
+$('analyzeBtn').onclick=async()=>{const f=$('file').files[0];if(!f){showStatus($('analyzeStatus'),'엑셀 파일을 선택하세요.','error');return}const fd=new FormData();fd.append('file',f);$('analyzeBtn').disabled=true;showStatus($('analyzeStatus'),'컬리 API로 배송지를 판정 중입니다. 동일 주소는 1회만 조회합니다...');try{const d=await api('/api/analyze',{method:'POST',body:fd});render(d);showStatus($('analyzeStatus'),`완료: 전체 ${d.summary.total_rows}행 / 새벽배송 ${d.summary.dawn_product_orders}건 / 익일배송 ${d.summary.nextday_product_orders}건 / 판정실패 ${d.summary.unknown_addresses}곳`,'ok')}catch(e){showStatus($('analyzeStatus'),e.message,'error')}finally{$('analyzeBtn').disabled=false}}
+$('copyBtn').onclick=async()=>{const text=$('contacts').value.trim();if(!text){showStatus($('contactStatus'),'복사할 신규 연락처가 없습니다.','error');return}try{await navigator.clipboard.writeText(text);showStatus($('contactStatus'),`${text.split('\n').length}개 연락처를 복사했습니다.`,'ok')}catch{ $('contacts').select();document.execCommand('copy');showStatus($('contactStatus'),'연락처를 복사했습니다.','ok')}}
+$('markBtn').onclick=async()=>{if(!currentJob)return;const n=currentJob.contacts.new_order_count;if(!n){showStatus($('contactStatus'),'신규 연락 대상 주문이 없습니다.','error');return}const ok=await modal('연락완료 처리',`현재 신규 익일배송 주문 <b>${n}건</b>을 연락완료로 기록할까요?<br>기록 후 같은 주문은 다음 엑셀에서 연락처 목록에 다시 나오지 않습니다.`,'연락완료 처리');if(!ok)return;try{const d=await api(`/api/jobs/${currentJob.job_id}/contacts/mark`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirm:true})});showStatus($('contactStatus'),`${d.marked}건을 연락완료 처리했습니다.`,'ok');await refreshJob()}catch(e){showStatus($('contactStatus'),e.message,'error')}}
+$('naverConfirmBtn').onclick=async()=>{if(!currentJob)return;const n=currentJob.naver.pending_product_orders;if(!n){showStatus($('naverStatus'),'발주확인할 새벽배송 상품주문이 없습니다.','error');return}const ok=await modal('네이버 발주확인',`새벽배송 상품주문 <b>${n}건</b>을 실제로 발주확인 처리합니다.<br>네이버 API는 최대 30건씩 자동으로 나누어 호출합니다.`,'발주확인 실행');if(!ok)return;showStatus($('naverStatus'),'네이버 발주확인 처리 중...');try{const d=await api(`/api/jobs/${currentJob.job_id}/naver-confirm`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirm:true})});let msg=`성공 ${d.success}건 · 실패 ${d.failed}건 · 기존완료 건너뜀 ${d.skipped_already_confirmed}건`;if(d.failures.length)msg+='\n'+d.failures.slice(0,10).map(x=>`${x.productOrderId}: ${x.message}`).join('\n');showStatus($('naverStatus'),msg,d.failed?'error':'ok');await refreshJob()}catch(e){showStatus($('naverStatus'),e.message,'error')}}
+$('resetBtn').onclick=async()=>{const h=await api('/api/contact-history');if(!h.count){renderHistory(h);return}const ok=await modal('연락 이력 초기화',`현재 연락완료 기록 <b>${h.count}건</b>을 모두 삭제합니다.<br><br><b>연락 이력만 초기화됩니다.</b> 이후 같은 주문이 다시 업로드되면 신규 연락 대상으로 표시될 수 있습니다.<br>정말 초기화할까요?`,'네, 초기화',true);if(!ok)return;try{const d=await api('/api/contact-history/reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirm:true})});renderHistory(d.contact_history);if(currentJob)await refreshJob();alert(`${d.deleted}건의 연락 이력을 초기화했습니다.`)}catch(e){alert(e.message)}}
+(async()=>{try{renderHistory(await api('/api/contact-history'))}catch(e){$('historyStats').textContent=e.message}})();
+</script>
+</body>
+</html>

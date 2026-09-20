@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: kurly-naver-shipping-tool
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: APP_USERNAME
+        value: admin
+      - key: APP_PASSWORD
+        sync: false
+      - key: EXCEL_PASSWORD
+        value: "0000"
+      - key: OUTPUT_EXCEL_PASSWORD
+        value: ""
+      - key: DATABASE_URL
+        sync: false
+      - key: KURLY_BASE_URL
+        sync: false
+      - key: KURLY_CLIENT_ID
+        sync: false
+      - key: KURLY_SECRET_KEY
+        sync: false
+      - key: KURLY_SOLUTION_CODE
+        sync: false
+      - key: KURLY_CONCURRENCY
+        value: "5"
+      - key: KURLY_TIMEOUT_SECONDS
+        value: "12"
+      - key: KURLY_POLICY_ADDRESS_FIELD
+        value: address
+      - key: NAVER_CLIENT_ID
+        sync: false
+      - key: NAVER_CLIENT_SECRET
+        sync: false
+      - key: NAVER_TOKEN_TYPE
+        value: SELF
+      - key: NAVER_ACCOUNT_ID
+        sync: false
+      - key: NAVER_BASE_URL
+        value: https://api.commerce.naver.com/external
