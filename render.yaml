@@ -14,22 +14,17 @@ services:
         value: ""
       - key: DATABASE_URL
         sync: false
-      - key: KURLY_AUTH_BASE_URL
-        value: https://authapi-kls.kurly.com
-      - key: KURLY_API_BASE_URL
+
+      # 컬리 호출은 Mac relay가 담당합니다. Render에는 컬리 clientId/secretKey를 저장하지 않습니다.
+      - key: KURLY_RELAY_URL
         sync: false
-      - key: KURLY_CLIENT_ID
+      - key: KURLY_RELAY_SECRET
         sync: false
-      - key: KURLY_SECRET_KEY
-        sync: false
-      - key: KURLY_SOLUTION_CODE
-        sync: false
-      - key: KURLY_CONCURRENCY
-        value: "5"
-      - key: KURLY_TIMEOUT_SECONDS
-        value: "12"
-      - key: KURLY_POLICY_ADDRESS_FIELD
-        value: address
+      - key: KURLY_RELAY_TIMEOUT_SECONDS
+        value: "90"
+      - key: KURLY_RELAY_BATCH_SIZE
+        value: "300"
+
       - key: NAVER_CLIENT_ID
         sync: false
       - key: NAVER_CLIENT_SECRET
