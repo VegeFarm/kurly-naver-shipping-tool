@@ -22,17 +22,11 @@ class Settings:
 
     database_url: str = os.getenv("DATABASE_URL", "sqlite:///./local.db")
 
-    # 컬리 인증 서버와 배송 API 서버는 서로 다른 호스트를 사용할 수 있어 분리합니다.
-    kurly_auth_base_url: str = os.getenv(
-        "KURLY_AUTH_BASE_URL", "https://authapi-kls.kurly.com"
-    ).rstrip("/")
-    kurly_api_base_url: str = os.getenv("KURLY_API_BASE_URL", "").rstrip("/")
-    kurly_client_id: str = os.getenv("KURLY_CLIENT_ID", "")
-    kurly_secret_key: str = os.getenv("KURLY_SECRET_KEY", "")
-    kurly_solution_code: str = os.getenv("KURLY_SOLUTION_CODE", "")
-    kurly_concurrency: int = max(1, min(_int("KURLY_CONCURRENCY", 5), 20))
-    kurly_timeout_seconds: int = max(3, _int("KURLY_TIMEOUT_SECONDS", 12))
-    kurly_policy_address_field: str = os.getenv("KURLY_POLICY_ADDRESS_FIELD", "address")
+    # Render에서는 컬리 API를 직접 호출하지 않고 Mac relay만 호출합니다.
+    kurly_relay_url: str = os.getenv("KURLY_RELAY_URL", "").rstrip("/")
+    kurly_relay_secret: str = os.getenv("KURLY_RELAY_SECRET", "")
+    kurly_relay_timeout_seconds: int = max(5, _int("KURLY_RELAY_TIMEOUT_SECONDS", 90))
+    kurly_relay_batch_size: int = max(1, min(_int("KURLY_RELAY_BATCH_SIZE", 300), 1000))
 
     naver_client_id: str = os.getenv("NAVER_CLIENT_ID", "")
     naver_client_secret: str = os.getenv("NAVER_CLIENT_SECRET", "")

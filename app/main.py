@@ -114,7 +114,7 @@ async def analyze(file: UploadFile = File(...)):
     if not rows:
         raise HTTPException(status_code=400, detail="주문 데이터가 없습니다.")
     if not kurly_client.configured():
-        raise HTTPException(status_code=503, detail="컬리 PROD API 환경변수가 설정되지 않았습니다.")
+        raise HTTPException(status_code=503, detail="Mac 컬리 중계 서버 환경변수가 설정되지 않았습니다.")
 
     # 동일 배송지는 한 번만 컬리 API 호출
     unique_addresses: dict[str, str] = {}
