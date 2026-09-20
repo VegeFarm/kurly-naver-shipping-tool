@@ -8,10 +8,6 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.8
-      - key: APP_USERNAME
-        value: admin
-      - key: APP_PASSWORD
-        sync: false
       - key: EXCEL_PASSWORD
         value: "0000"
       - key: OUTPUT_EXCEL_PASSWORD
