@@ -18,6 +18,15 @@ REQUIRED_HEADERS = {
     "구매자연락처",
 }
 
+BUYER_NAME_HEADERS = ("구매자명", "주문자명")
+RECIPIENT_PHONE_HEADERS = (
+    "수취인연락처1",
+    "수취인연락처",
+    "수취인연락처2",
+    "배송지연락처",
+    "수령인연락처",
+)
+
 
 @dataclass
 class OrderRow:
@@ -26,7 +35,9 @@ class OrderRow:
     zip_code: str
     product_order_id: str
     order_id: str
+    buyer_name: str
     buyer_phone: str
+    recipient_phone: str
 
     @property
     def address_key(self) -> str:
@@ -81,9 +92,24 @@ def _find_order_sheet_and_header(wb):
     )
 
 
+def _header_indexes(headers: dict[str, int], candidates: tuple[str, ...]) -> list[int]:
+    return [headers[name] for name in candidates if name in headers]
+
+
+def _first_nonempty_cell(ws, row: int, indexes: list[int]) -> str:
+    for col in indexes:
+        value = _cell_text(ws.cell(row, col).value)
+        if value:
+            return value
+    return ""
+
+
 def parse_orders(plain_xlsx: bytes) -> tuple[list[OrderRow], dict]:
     wb = load_workbook(io.BytesIO(plain_xlsx), data_only=False, read_only=False, keep_links=True)
     ws, header_row, headers = _find_order_sheet_and_header(wb)
+
+    buyer_name_indexes = _header_indexes(headers, BUYER_NAME_HEADERS)
+    recipient_phone_indexes = _header_indexes(headers, RECIPIENT_PHONE_HEADERS)
 
     rows: list[OrderRow] = []
     for r in range(header_row + 1, ws.max_row + 1):
@@ -92,6 +118,8 @@ def parse_orders(plain_xlsx: bytes) -> tuple[list[OrderRow], dict]:
         address = _cell_text(ws.cell(r, headers["통합배송지"]).value)
         zip_code = _cell_text(ws.cell(r, headers["우편번호"]).value)
         buyer_phone = _cell_text(ws.cell(r, headers["구매자연락처"]).value)
+        buyer_name = _first_nonempty_cell(ws, r, buyer_name_indexes)
+        recipient_phone = _first_nonempty_cell(ws, r, recipient_phone_indexes)
         if not product_order_id and not order_id and not address:
             continue
         if not product_order_id:
@@ -103,7 +131,9 @@ def parse_orders(plain_xlsx: bytes) -> tuple[list[OrderRow], dict]:
                 zip_code=zip_code,
                 product_order_id=product_order_id,
                 order_id=order_id or product_order_id,
+                buyer_name=buyer_name,
                 buyer_phone=buyer_phone,
+                recipient_phone=recipient_phone,
             )
         )
 
@@ -151,6 +181,37 @@ def build_filtered_workbook(
 
 def digits_only(phone: str) -> str:
     return re.sub(r"\D", "", phone or "")
+
+
+def is_mobile_phone(phone: str) -> bool:
+    """문자 발송 대상은 현재 국내 휴대전화 010 번호만 인정한다."""
+    d = digits_only(phone)
+    return len(d) == 11 and d.startswith("010")
+
+
+def select_contact_phone(buyer_phone: str, recipient_phone: str) -> tuple[str, str, str]:
+    """
+    연락 대상 선택 규칙.
+
+    1) 구매자 연락처가 010이면 구매자 번호 사용
+    2) 구매자 연락처가 010이 아니면 수취인 연락처 확인
+    3) 수취인 연락처가 010이면 수취인 번호 사용
+    4) 둘 다 010이 아니면 구매자 번호(없으면 수취인 번호)를 수동확인 대상으로 사용
+
+    반환값: (kind, formatted_phone, source)
+      - kind: mobile / manual / missing
+      - source: buyer / recipient / ""
+    """
+    if is_mobile_phone(buyer_phone):
+        return "mobile", format_korean_phone(buyer_phone), "buyer"
+    if is_mobile_phone(recipient_phone):
+        return "mobile", format_korean_phone(recipient_phone), "recipient"
+
+    if digits_only(buyer_phone):
+        return "manual", format_korean_phone(buyer_phone), "buyer"
+    if digits_only(recipient_phone):
+        return "manual", format_korean_phone(recipient_phone), "recipient"
+    return "missing", "", ""
 
 
 def format_korean_phone(phone: str) -> str:
