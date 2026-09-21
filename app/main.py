@@ -24,6 +24,7 @@ from .services.excel_service import (
     digits_only,
     format_korean_phone,
     parse_orders,
+    select_contact_phone,
 )
 from .services.kurly import kurly_client
 from .services.naver import naver_client
@@ -55,14 +56,35 @@ def _public_job(meta: dict) -> dict:
     contacted = contacted_order_ids(order_ids)
     new_orders = [x for x in nextday_orders if x.get("order_id") not in contacted]
 
-    phone_keys = set()
-    phones = []
+    mobile_keys = set()
+    mobile_phones = []
+    manual_keys = set()
+    manual_contacts = []
     for item in new_orders:
-        key = digits_only(item.get("phone", ""))
-        if not key or key in phone_keys:
+        phone = format_korean_phone(item.get("phone", ""))
+        key = digits_only(phone)
+        if not key:
             continue
-        phone_keys.add(key)
-        phones.append(format_korean_phone(item.get("phone", "")))
+
+        if item.get("contact_kind") == "mobile":
+            if key in mobile_keys:
+                continue
+            mobile_keys.add(key)
+            mobile_phones.append(phone)
+            continue
+
+        buyer_name = (item.get("buyer_name") or "이름없음").strip()
+        manual_key = (buyer_name, key)
+        if manual_key in manual_keys:
+            continue
+        manual_keys.add(manual_key)
+        manual_contacts.append(
+            {
+                "buyer_name": buyer_name,
+                "phone": phone,
+                "display": f"{buyer_name} {phone}",
+            }
+        )
 
     dawn_ids = meta.get("dawn_product_order_ids", [])
     confirmed = confirmed_product_order_ids(dawn_ids)
@@ -71,10 +93,18 @@ def _public_job(meta: dict) -> dict:
         "job_id": meta["job_id"],
         "summary": meta["summary"],
         "contacts": {
-            "phones": phones,
+            # phones는 기존 프론트/호환성을 위해 휴대전화 목록과 동일하게 유지
+            "phones": mobile_phones,
+            "mobile_phones": mobile_phones,
+            "manual_contacts": manual_contacts,
             "new_order_count": len({x["order_id"] for x in new_orders}),
+            "contactable_order_count": len(
+                {x["order_id"] for x in new_orders if digits_only(x.get("phone", ""))}
+            ),
             "already_contacted_order_count": len(contacted),
-            "phone_count": len(phones),
+            "phone_count": len(mobile_phones),
+            "mobile_phone_count": len(mobile_phones),
+            "manual_contact_count": len(manual_contacts),
             "missing_phone_order_count": len(
                 {x["order_id"] for x in new_orders if not digits_only(x.get("phone", ""))}
             ),
@@ -149,16 +179,29 @@ async def analyze(file: UploadFile = File(...)):
     nextday_path.write_bytes(nextday_bytes)
 
     # 익일 연락은 주문번호 단위. 같은 주문이 여러 상품 행이어도 1건으로 저장.
+    # 구매자 번호가 010이 아니면 수취인 연락처를 확인하고, 수취인이 010이면
+    # 문자 대상 번호로 사용한다. 둘 다 휴대전화가 아니면 수동 확인 목록으로 보낸다.
     nextday_by_order: dict[str, dict] = {}
     for r in day_rows:
-        nextday_by_order.setdefault(
-            r.order_id,
-            {
-                "order_id": r.order_id,
-                "phone": r.buyer_phone,
-                "address_hash": r.address_hash,
-            },
+        contact_kind, contact_phone, contact_source = select_contact_phone(
+            r.buyer_phone, r.recipient_phone
         )
+        candidate = {
+            "order_id": r.order_id,
+            "buyer_name": r.buyer_name,
+            "buyer_phone": format_korean_phone(r.buyer_phone),
+            "recipient_phone": format_korean_phone(r.recipient_phone),
+            "phone": contact_phone,
+            "contact_kind": contact_kind,
+            "contact_source": contact_source,
+            "address_hash": r.address_hash,
+        }
+        existing = nextday_by_order.get(r.order_id)
+        if existing is None:
+            nextday_by_order[r.order_id] = candidate
+        elif existing.get("contact_kind") != "mobile" and contact_kind == "mobile":
+            # 같은 주문의 다른 상품 행에서 더 좋은(휴대전화) 연락처가 발견되면 교체
+            nextday_by_order[r.order_id] = candidate
 
     unknown_by_address = {}
     for r, error in unknown_rows:
