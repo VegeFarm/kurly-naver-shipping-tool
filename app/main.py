@@ -41,7 +41,7 @@ def startup():
 
 @app.get("/healthz")
 def healthz():
-    return {"ok": True}
+    return {"ok": True, "build": "naver-confirm-v3"}
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -268,29 +268,48 @@ class ConfirmBody(BaseModel):
 
 @app.post("/api/jobs/{job_id}/naver-confirm")
 async def naver_confirm(job_id: str, body: ConfirmBody):
-    if not body.confirm:
-        raise HTTPException(status_code=400, detail="발주확인 동의가 필요합니다.")
-    if not naver_client.configured():
-        raise HTTPException(status_code=503, detail="네이버 API 환경변수가 설정되지 않았습니다.")
+    # 이 엔드포인트 전체를 감싸서 예상하지 못한 예외도 브라우저에 원인을 표시한다.
     try:
-        _, meta = load_meta(job_id)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail="작업을 찾을 수 없습니다.")
+        if not body.confirm:
+            raise HTTPException(status_code=400, detail="발주확인 동의가 필요합니다.")
+        if not naver_client.configured():
+            raise HTTPException(status_code=503, detail="네이버 API 환경변수가 설정되지 않았습니다.")
 
-    all_ids = list(dict.fromkeys(meta.get("dawn_product_order_ids", [])))
-    already = confirmed_product_order_ids(all_ids)
-    pending = [x for x in all_ids if x not in already]
-    if not pending:
-        return {"success": 0, "failed": 0, "skipped_already_confirmed": len(already), "failures": []}
+        try:
+            _, meta = load_meta(job_id)
+        except FileNotFoundError:
+            raise HTTPException(status_code=404, detail="작업을 찾을 수 없습니다.")
 
-    result = await naver_client.confirm_product_orders(pending)
-    mark_product_orders_confirmed(result.success_ids)
-    return {
-        "success": len(result.success_ids),
-        "failed": len(result.failures),
-        "skipped_already_confirmed": len(already),
-        "failures": result.failures,
-    }
+        all_ids = list(dict.fromkeys(str(x) for x in meta.get("dawn_product_order_ids", []) if x))
+        already = confirmed_product_order_ids(all_ids)
+        pending = [x for x in all_ids if x not in already]
+        if not pending:
+            return {
+                "success": 0,
+                "failed": 0,
+                "skipped_already_confirmed": len(already),
+                "failures": [],
+            }
+
+        result = await naver_client.confirm_product_orders(pending)
+
+        if result.success_ids:
+            mark_product_orders_confirmed(result.success_ids)
+
+        return {
+            "success": len(result.success_ids),
+            "failed": len(result.failures),
+            "skipped_already_confirmed": len(already),
+            "failures": result.failures,
+        }
+    except HTTPException:
+        raise
+    except Exception as exc:
+        # Client ID/Secret 같은 비밀값은 반환하지 않고 예외 종류와 메시지만 전달한다.
+        raise HTTPException(
+            status_code=502,
+            detail=f"네이버 발주확인 오류 [{type(exc).__name__}]: {exc}",
+        ) from exc
 
 
 @app.post("/api/jobs/{job_id}/contacts/mark")
