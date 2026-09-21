@@ -41,7 +41,7 @@ def startup():
 
 @app.get("/healthz")
 def healthz():
-    return {"ok": True, "build": "naver-confirm-v3"}
+    return {"ok": True, "build": "naver-relay-confirm-v1"}
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -273,7 +273,7 @@ async def naver_confirm(job_id: str, body: ConfirmBody):
         if not body.confirm:
             raise HTTPException(status_code=400, detail="발주확인 동의가 필요합니다.")
         if not naver_client.configured():
-            raise HTTPException(status_code=503, detail="네이버 API 환경변수가 설정되지 않았습니다.")
+            raise HTTPException(status_code=503, detail="Mac 네이버 중계 서버 환경변수가 설정되지 않았습니다.")
 
         try:
             _, meta = load_meta(job_id)

@@ -28,13 +28,10 @@ class Settings:
     kurly_relay_timeout_seconds: int = max(5, _int("KURLY_RELAY_TIMEOUT_SECONDS", 90))
     kurly_relay_batch_size: int = max(1, min(_int("KURLY_RELAY_BATCH_SIZE", 300), 1000))
 
-    naver_client_id: str = os.getenv("NAVER_CLIENT_ID", "")
-    naver_client_secret: str = os.getenv("NAVER_CLIENT_SECRET", "")
-    naver_token_type: str = os.getenv("NAVER_TOKEN_TYPE", "SELF").upper()
-    naver_account_id: str = os.getenv("NAVER_ACCOUNT_ID", "")
-    naver_base_url: str = os.getenv(
-        "NAVER_BASE_URL", "https://api.commerce.naver.com/external"
-    ).rstrip("/")
+    # 네이버 API도 Render에서 직접 호출하지 않고 기존 Mac relay를 통해 호출합니다.
+    naver_relay_url: str = os.getenv("NAVER_RELAY_URL", "").rstrip("/")
+    naver_relay_token: str = os.getenv("NAVER_RELAY_TOKEN", "")
+    naver_relay_timeout_seconds: int = max(5, _int("NAVER_RELAY_TIMEOUT_SECONDS", 90))
 
     runtime_dir: str = os.getenv("RUNTIME_DIR", "/tmp/kurly_naver_shipping_tool")
 
