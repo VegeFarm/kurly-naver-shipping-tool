@@ -8,7 +8,7 @@
 :root{font-family:Inter,Apple SD Gothic Neo,Pretendard,Arial,sans-serif;color:#17202a;background:#f5f7f9}
 *{box-sizing:border-box} body{margin:0} .wrap{max-width:980px;margin:36px auto;padding:0 18px 50px}
 h1{font-size:28px;margin:0 0 6px}.sub{color:#68737d;margin:0 0 24px}.card{background:#fff;border:1px solid #e4e8ec;border-radius:14px;padding:20px;margin:14px 0;box-shadow:0 1px 2px rgba(0,0,0,.03)}
-.uploadCard{transition:border-color .15s ease,background .15s ease,box-shadow .15s ease}.uploadCard.dragover{border-color:#4a90e2;background:#f3f8ff;box-shadow:0 0 0 3px rgba(74,144,226,.10)}.upload{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.upload input{flex:1;min-width:260px;border:1px solid #d7dde3;border-radius:10px;padding:11px;background:#fff}.dropHint{width:100%;font-size:12px;color:#75808a;margin-top:2px}.uploadCard.dragover .dropHint{color:#1557a0;font-weight:700}
+.upload{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.upload input{flex:1;min-width:260px;border:1px solid #d7dde3;border-radius:10px;padding:11px;background:#fff}
 button,.btn{border:0;border-radius:10px;padding:11px 15px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block;font-size:14px}.primary{background:#15191d;color:#fff}.secondary{background:#eef1f4;color:#20262c}.danger{background:#fff0f0;color:#b42318}.green{background:#eaf8ef;color:#116b37}.blue{background:#edf5ff;color:#1557a0}.muted{color:#75808a}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}@media(max-width:820px){.grid{grid-template-columns:1fr}}
 .big{font-size:30px;font-weight:800;margin:4px 0}.label{font-weight:800;font-size:18px}.stats{font-size:13px;color:#66717b;line-height:1.7}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
@@ -24,11 +24,10 @@ small{color:#75808a}.topline{display:flex;justify-content:space-between;gap:10px
   <h1>새벽배송 / 익일배송 / 배송불가 분류</h1>
   <p class="sub">네이버 주문 엑셀 → 컬리 배송 가능 여부 판정 → 새벽배송 발주확인 / 익일배송 연락·엑셀 / 배송불가 확인</p>
 
-  <div id="uploadCard" class="card uploadCard">
+  <div class="card">
     <div class="upload">
       <input id="file" type="file" accept=".xlsx">
       <button id="analyzeBtn" class="primary">분석하기</button>
-      <div id="dropHint" class="dropHint">엑셀 파일을 이 영역에 끌어다 놓아도 됩니다.</div>
     </div>
     <div id="analyzeStatus" class="status hidden"></div>
     <small>엑셀 비밀번호는 서버 환경변수(EXCEL_PASSWORD, 기본 0000)로 처리됩니다. 업로드 파일은 작업용 임시공간에만 사용합니다.</small>
@@ -120,15 +119,6 @@ function hideStatus(el){el.classList.add('hidden')}
 async function api(url,opts={}){const r=await fetch(url,opts);const raw=await r.text();let data={};if(raw){try{data=JSON.parse(raw)}catch{data={detail:raw}}}if(!r.ok)throw new Error(data.detail||data.message||`HTTP ${r.status}`);return data}
 function fmtDate(s){if(!s)return '-';return new Date(s).toLocaleString('ko-KR')}
 function modal(title,text,okText='확인',danger=false){return new Promise(resolve=>{ $('modalTitle').textContent=title;$('modalText').innerHTML=text;$('modalOk').textContent=okText;$('modalOk').className=danger?'danger':'primary';$('modal').classList.remove('hidden'); const close=v=>{$('modal').classList.add('hidden');$('modalOk').onclick=null;$('modalCancel').onclick=null;resolve(v)};$('modalOk').onclick=()=>close(true);$('modalCancel').onclick=()=>close(false);})}
-function isExcelFile(file){return !!file && /\.xlsx$/i.test(file.name||'')}
-function setDroppedFile(file){if(!isExcelFile(file)){showStatus($('analyzeStatus'),'엑셀(.xlsx) 파일만 올릴 수 있습니다.','error');return false}try{const dt=new DataTransfer();dt.items.add(file);$('file').files=dt.files}catch(e){showStatus($('analyzeStatus'),'이 브라우저에서는 드래그 파일 등록을 지원하지 않습니다. 파일 선택 버튼을 이용해주세요.','error');return false}showStatus($('analyzeStatus'),`파일 선택 완료: ${file.name}`,'ok');return true}
-const uploadCard=$('uploadCard');
-['dragenter','dragover'].forEach(evt=>uploadCard.addEventListener(evt,e=>{e.preventDefault();e.stopPropagation();uploadCard.classList.add('dragover');$('dropHint').textContent='여기에 놓으면 파일이 선택됩니다.'}));
-['dragleave','drop'].forEach(evt=>uploadCard.addEventListener(evt,e=>{e.preventDefault();e.stopPropagation();uploadCard.classList.remove('dragover');$('dropHint').textContent='엑셀 파일을 이 영역에 끌어다 놓아도 됩니다.'}));
-uploadCard.addEventListener('drop',e=>{const files=e.dataTransfer&&e.dataTransfer.files;if(files&&files.length)setDroppedFile(files[0])});
-$('file').addEventListener('change',()=>{const f=$('file').files[0];if(f)showStatus($('analyzeStatus'),`파일 선택 완료: ${f.name}`,'ok')});
-document.addEventListener('dragover',e=>{if(e.dataTransfer&&Array.from(e.dataTransfer.types||[]).includes('Files'))e.preventDefault()});
-document.addEventListener('drop',e=>{if(!uploadCard.contains(e.target)&&e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files.length)e.preventDefault()});
 function render(data){
   currentJob=data;
   $('results').classList.remove('hidden');
