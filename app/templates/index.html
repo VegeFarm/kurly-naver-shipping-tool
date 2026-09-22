@@ -3,26 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>새벽배송 / 익일배송 분류</title>
+<title>새벽배송 / 익일배송 / 배송불가 분류</title>
 <style>
 :root{font-family:Inter,Apple SD Gothic Neo,Pretendard,Arial,sans-serif;color:#17202a;background:#f5f7f9}
 *{box-sizing:border-box} body{margin:0} .wrap{max-width:980px;margin:36px auto;padding:0 18px 50px}
 h1{font-size:28px;margin:0 0 6px}.sub{color:#68737d;margin:0 0 24px}.card{background:#fff;border:1px solid #e4e8ec;border-radius:14px;padding:20px;margin:14px 0;box-shadow:0 1px 2px rgba(0,0,0,.03)}
 .upload{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.upload input{flex:1;min-width:260px;border:1px solid #d7dde3;border-radius:10px;padding:11px;background:#fff}
 button,.btn{border:0;border-radius:10px;padding:11px 15px;font-weight:700;cursor:pointer;text-decoration:none;display:inline-block;font-size:14px}.primary{background:#15191d;color:#fff}.secondary{background:#eef1f4;color:#20262c}.danger{background:#fff0f0;color:#b42318}.green{background:#eaf8ef;color:#116b37}.blue{background:#edf5ff;color:#1557a0}.muted{color:#75808a}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:720px){.grid{grid-template-columns:1fr}}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}@media(max-width:820px){.grid{grid-template-columns:1fr}}
 .big{font-size:30px;font-weight:800;margin:4px 0}.label{font-weight:800;font-size:18px}.stats{font-size:13px;color:#66717b;line-height:1.7}.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
 textarea{width:100%;height:180px;border:1px solid #d7dde3;border-radius:10px;padding:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;line-height:1.6;resize:vertical;background:#fbfcfd}
 .hidden{display:none!important}.status{padding:12px 14px;border-radius:10px;margin-top:12px;background:#eef4fb;color:#24435f;white-space:pre-wrap}.error{background:#fff0f0;color:#9f1d1d}.ok{background:#ecf9f0;color:#146c37}
 hr{border:0;border-top:1px solid #edf0f2;margin:18px 0}.pill{display:inline-block;background:#f0f2f4;border-radius:999px;padding:4px 8px;font-size:12px;color:#58636d}.warn{background:#fff7e8;color:#8a5a00}
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center;padding:20px;z-index:10}.modalBox{background:#fff;max-width:520px;width:100%;border-radius:16px;padding:22px}.modalBox h3{margin-top:0}.modalActions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}
-small{color:#75808a}.topline{display:flex;justify-content:space-between;gap:10px;align-items:center}.unknownList{max-height:150px;overflow:auto;font-size:12px;color:#7a3d00;background:#fff8ed;border-radius:8px;padding:8px}.unknownList div{padding:5px 0;border-bottom:1px solid #f2e4cf}.contactGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.contactPane{border:1px solid #e4e8ec;border-radius:12px;padding:14px;background:#fbfcfd}.contactPane textarea{background:#fff;height:220px}.contactPane .actions{margin-top:10px}.contactTitle{font-weight:800;font-size:15px}.contactHelp{font-size:12px;color:#75808a;line-height:1.55;margin:6px 0 10px}@media(max-width:720px){.contactGrid{grid-template-columns:1fr}}
+small{color:#75808a}.topline{display:flex;justify-content:space-between;gap:10px;align-items:center}.unknownList{max-height:150px;overflow:auto;font-size:12px;color:#7a3d00;background:#fff8ed;border-radius:8px;padding:8px}.unknownList div{padding:5px 0;border-bottom:1px solid #f2e4cf}.contactGrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}.contactPane{border:1px solid #e4e8ec;border-radius:12px;padding:14px;background:#fbfcfd}.contactPane textarea{background:#fff;height:220px}.contactPane .actions{margin-top:10px}.contactTitle{font-weight:800;font-size:15px}.contactHelp{font-size:12px;color:#75808a;line-height:1.55;margin:6px 0 10px}.clickableCard{cursor:pointer;transition:transform .12s ease,border-color .12s ease}.clickableCard:hover{border-color:#c9d1d8;transform:translateY(-1px)}.orange{background:#fff1e7;color:#a44708}.unavailableList{display:grid;gap:10px}.unavailableItem{border:1px solid #eceff2;border-radius:10px;padding:12px;background:#fbfcfd}.unavailableItem .name{font-weight:800;margin-bottom:4px}.unavailableItem .line{font-size:13px;line-height:1.65;color:#4f5b65}.unavailableItem .phone{font-weight:700}@media(max-width:720px){.contactGrid{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>새벽배송 / 익일배송 분류</h1>
-  <p class="sub">네이버 주문 엑셀 → 컬리 배송 가능 여부 판정 → 새벽배송 발주확인 / 익일배송 연락·엑셀</p>
+  <h1>새벽배송 / 익일배송 / 배송불가 분류</h1>
+  <p class="sub">네이버 주문 엑셀 → 컬리 배송 가능 여부 판정 → 새벽배송 발주확인 / 익일배송 연락·엑셀 / 배송불가 확인</p>
 
   <div class="card">
     <div class="upload">
@@ -51,6 +51,18 @@ small{color:#75808a}.topline{display:flex;justify-content:space-between;gap:10px
           <a id="downloadBtn" class="btn primary" href="#">익일배송 엑셀 다운로드</a>
         </div>
       </div>
+
+      <div id="unavailableCard" class="card clickableCard" role="button" tabindex="0" aria-expanded="false">
+        <div class="topline"><span class="label">배송불가</span><span class="pill orange">컬리 배송서비스 없음</span></div>
+        <div class="big"><span id="unavailableCount">0</span>건</div>
+        <div id="unavailableStats" class="stats">배송불가 주문이 있으면 눌러서 이름·전화번호·주소를 확인할 수 있습니다.</div>
+      </div>
+    </div>
+
+    <div id="unavailableDetailsCard" class="card hidden">
+      <div class="topline"><span class="label">배송불가 상세</span><span id="unavailableDetailCount" class="pill orange">0건</span></div>
+      <p class="stats">배송불가 주문은 신규 연락 대상과 연락 이력에 포함하지 않습니다.</p>
+      <div id="unavailableList" class="unavailableList"></div>
     </div>
 
     <div class="card">
@@ -107,11 +119,52 @@ function hideStatus(el){el.classList.add('hidden')}
 async function api(url,opts={}){const r=await fetch(url,opts);const raw=await r.text();let data={};if(raw){try{data=JSON.parse(raw)}catch{data={detail:raw}}}if(!r.ok)throw new Error(data.detail||data.message||`HTTP ${r.status}`);return data}
 function fmtDate(s){if(!s)return '-';return new Date(s).toLocaleString('ko-KR')}
 function modal(title,text,okText='확인',danger=false){return new Promise(resolve=>{ $('modalTitle').textContent=title;$('modalText').innerHTML=text;$('modalOk').textContent=okText;$('modalOk').className=danger?'danger':'primary';$('modal').classList.remove('hidden'); const close=v=>{$('modal').classList.add('hidden');$('modalOk').onclick=null;$('modalCancel').onclick=null;resolve(v)};$('modalOk').onclick=()=>close(true);$('modalCancel').onclick=()=>close(false);})}
-function render(data){currentJob=data;$('results').classList.remove('hidden');$('dawnCount').textContent=data.summary.dawn_product_orders;$('dawnStats').innerHTML=`배송지 ${data.summary.dawn_addresses}곳 · 로컬 발주완료 ${data.naver.already_confirmed_locally}건 · 발주대기 ${data.naver.pending_product_orders}건`;$('nextdayCount').textContent=data.summary.nextday_product_orders;$('nextdayStats').innerHTML=`주문 ${data.summary.nextday_orders}건 · 배송지 ${data.summary.nextday_addresses}곳 · 이미 연락완료 ${data.contacts.already_contacted_order_count}건`;$('contacts').value=(data.contacts.mobile_phones||data.contacts.phones||[]).join('\n');$('manualContacts').value=(data.contacts.manual_contacts||[]).map(x=>x.display).join('\n');const mobileN=data.contacts.mobile_phone_count??data.contacts.phone_count??0;const manualN=data.contacts.manual_contact_count??0;$('mobileCount').textContent=`${mobileN}개`;$('manualCount').textContent=`${manualN}개`;$('contactCount').textContent=`휴대전화 ${mobileN}개 · 확인 필요 ${manualN}개`;$('downloadBtn').href=`/api/jobs/${data.job_id}/nextday.xlsx`;if(data.unknowns.length){$('unknownCard').classList.remove('hidden');$('unknownCount').textContent=`${data.summary.unknown_addresses}곳`;$('unknownList').innerHTML=data.unknowns.map(x=>`<div>${escapeHtml(x.zip_code+' '+x.address)}<br><span class="muted">${escapeHtml(x.error)}</span></div>`).join('')}else{$('unknownCard').classList.add('hidden')}renderHistory(data.contact_history)}
+function render(data){
+  currentJob=data;
+  $('results').classList.remove('hidden');
+  $('dawnCount').textContent=data.summary.dawn_product_orders;
+  $('dawnStats').innerHTML=`배송지 ${data.summary.dawn_addresses}곳 · 로컬 발주완료 ${data.naver.already_confirmed_locally}건 · 발주대기 ${data.naver.pending_product_orders}건`;
+  $('nextdayCount').textContent=data.summary.nextday_product_orders;
+  $('nextdayStats').innerHTML=`주문 ${data.summary.nextday_orders}건 · 배송지 ${data.summary.nextday_addresses}곳 · 이미 연락완료 ${data.contacts.already_contacted_order_count}건`;
+
+  const unavailableOrders=data.unavailable_orders||[];
+  const unavailableN=data.summary.unavailable_orders??unavailableOrders.length;
+  $('unavailableCount').textContent=unavailableN;
+  $('unavailableDetailCount').textContent=`${unavailableN}건`;
+  $('unavailableStats').textContent=unavailableN
+    ? `상품주문 ${data.summary.unavailable_product_orders||0}건 · 배송지 ${data.summary.unavailable_addresses||0}곳 · 눌러서 상세보기`
+    : '배송불가 주문이 없습니다.';
+  $('unavailableList').innerHTML=unavailableN
+    ? unavailableOrders.map(x=>`<div class="unavailableItem"><div class="name">${escapeHtml(x.name||'이름없음')}</div><div class="line phone">${escapeHtml(x.phone||'연락처 없음')}</div><div class="line">${escapeHtml(((x.zip_code||'')+' '+(x.address||'')).trim())}</div></div>`).join('')
+    : '<div class="stats">배송불가 주문이 없습니다.</div>';
+  if(!unavailableN){$('unavailableDetailsCard').classList.add('hidden');$('unavailableCard').setAttribute('aria-expanded','false')}
+
+  $('contacts').value=(data.contacts.mobile_phones||data.contacts.phones||[]).join('\n');
+  $('manualContacts').value=(data.contacts.manual_contacts||[]).map(x=>x.display).join('\n');
+  const mobileN=data.contacts.mobile_phone_count??data.contacts.phone_count??0;
+  const manualN=data.contacts.manual_contact_count??0;
+  $('mobileCount').textContent=`${mobileN}개`;
+  $('manualCount').textContent=`${manualN}개`;
+  $('contactCount').textContent=`휴대전화 ${mobileN}개 · 확인 필요 ${manualN}개`;
+  $('downloadBtn').href=`/api/jobs/${data.job_id}/nextday.xlsx`;
+
+  if(data.unknowns.length){
+    $('unknownCard').classList.remove('hidden');
+    $('unknownCount').textContent=`${data.summary.unknown_addresses}곳`;
+    $('unknownList').innerHTML=data.unknowns.map(x=>`<div>${escapeHtml(x.zip_code+' '+x.address)}<br><span class="muted">${escapeHtml(x.error)}</span></div>`).join('')
+  }else{
+    $('unknownCard').classList.add('hidden')
+  }
+  renderHistory(data.contact_history)
+}
+
 function escapeHtml(s){return String(s||'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 function renderHistory(h){$('historyCount').textContent=`${h.count}건`;$('historyStats').textContent=h.count?`가장 오래된 기록 ${fmtDate(h.oldest)} · 최근 기록 ${fmtDate(h.newest)}`:'저장된 연락 이력이 없습니다.'}
 async function refreshJob(){if(!currentJob)return;const d=await api(`/api/jobs/${currentJob.job_id}`);render(d)}
-$('analyzeBtn').onclick=async()=>{const f=$('file').files[0];if(!f){showStatus($('analyzeStatus'),'엑셀 파일을 선택하세요.','error');return}const fd=new FormData();fd.append('file',f);$('analyzeBtn').disabled=true;showStatus($('analyzeStatus'),'컬리 API로 배송지를 판정 중입니다. 동일 주소는 1회만 조회합니다...');try{const d=await api('/api/analyze',{method:'POST',body:fd});render(d);showStatus($('analyzeStatus'),`완료: 전체 ${d.summary.total_rows}행 / 새벽배송 ${d.summary.dawn_product_orders}건 / 익일배송 ${d.summary.nextday_product_orders}건 / 판정실패 ${d.summary.unknown_addresses}곳`,'ok')}catch(e){showStatus($('analyzeStatus'),e.message,'error')}finally{$('analyzeBtn').disabled=false}}
+$('analyzeBtn').onclick=async()=>{const f=$('file').files[0];if(!f){showStatus($('analyzeStatus'),'엑셀 파일을 선택하세요.','error');return}const fd=new FormData();fd.append('file',f);$('analyzeBtn').disabled=true;showStatus($('analyzeStatus'),'컬리 API로 배송지를 판정 중입니다. 동일 주소는 1회만 조회합니다...');try{const d=await api('/api/analyze',{method:'POST',body:fd});render(d);showStatus($('analyzeStatus'),`완료: 전체 ${d.summary.total_rows}행 / 새벽배송 ${d.summary.dawn_product_orders}건 / 익일배송 ${d.summary.nextday_product_orders}건 / 배송불가 ${d.summary.unavailable_orders||0}건 / 판정실패 ${d.summary.unknown_addresses}곳`,'ok')}catch(e){showStatus($('analyzeStatus'),e.message,'error')}finally{$('analyzeBtn').disabled=false}}
+function toggleUnavailableDetails(){if(!currentJob)return;const n=currentJob.summary.unavailable_orders||0;if(!n)return;const card=$('unavailableDetailsCard');const willOpen=card.classList.contains('hidden');card.classList.toggle('hidden');$('unavailableCard').setAttribute('aria-expanded',willOpen?'true':'false');if(willOpen)card.scrollIntoView({behavior:'smooth',block:'nearest'})}
+$('unavailableCard').onclick=toggleUnavailableDetails;
+$('unavailableCard').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();toggleUnavailableDetails()}};
 $('copyBtn').onclick=async()=>{const text=$('contacts').value.trim();if(!text){showStatus($('contactStatus'),'복사할 신규 휴대전화가 없습니다.','error');return}try{await navigator.clipboard.writeText(text);showStatus($('contactStatus'),`${text.split('\n').length}개 휴대전화 번호를 복사했습니다.`,'ok')}catch{ $('contacts').select();document.execCommand('copy');showStatus($('contactStatus'),'휴대전화 번호를 복사했습니다.','ok')}}
 $('markBtn').onclick=async()=>{if(!currentJob)return;const n=currentJob.contacts.contactable_order_count??currentJob.contacts.new_order_count;if(!n){showStatus($('contactStatus'),'연락처가 있는 신규 연락 대상 주문이 없습니다.','error');return}const ok=await modal('연락완료 처리',`현재 화면의 신규 익일배송 연락 대상 주문 <b>${n}건</b>을 연락완료로 기록할까요?<br>왼쪽 휴대전화와 오른쪽 확인 필요 주문이 함께 처리됩니다.<br>기록 후 같은 주문은 다음 엑셀에서 다시 나오지 않습니다.`,'연락완료 처리');if(!ok)return;try{const d=await api(`/api/jobs/${currentJob.job_id}/contacts/mark`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirm:true})});showStatus($('contactStatus'),`${d.marked}건을 연락완료 처리했습니다.`,'ok');await refreshJob()}catch(e){showStatus($('contactStatus'),e.message,'error')}}
 $('naverConfirmBtn').onclick=async()=>{if(!currentJob)return;const n=currentJob.naver.pending_product_orders;if(!n){showStatus($('naverStatus'),'발주확인할 새벽배송 상품주문이 없습니다.','error');return}const ok=await modal('네이버 발주확인',`새벽배송 상품주문 <b>${n}건</b>을 실제로 발주확인 처리합니다.<br>네이버 API는 최대 30건씩 자동으로 나누어 호출합니다.`,'발주확인 실행');if(!ok)return;showStatus($('naverStatus'),'네이버 발주확인 처리 중...');try{const d=await api(`/api/jobs/${currentJob.job_id}/naver-confirm`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({confirm:true})});let msg=`성공 ${d.success}건 · 실패 ${d.failed}건 · 기존완료 건너뜀 ${d.skipped_already_confirmed}건`;if(d.failures.length)msg+='\n'+d.failures.slice(0,10).map(x=>`${x.productOrderId}: ${x.message}`).join('\n');showStatus($('naverStatus'),msg,d.failed?'error':'ok');await refreshJob()}catch(e){showStatus($('naverStatus'),e.message,'error')}}

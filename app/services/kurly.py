@@ -9,7 +9,7 @@ from ..config import settings
 
 @dataclass
 class PolicyResult:
-    mode: str  # DAWN | DAY | UNKNOWN
+    mode: str  # DAWN | DAY | UNAVAILABLE | UNKNOWN
     error: str = ""
 
 
@@ -85,7 +85,7 @@ class KurlyRelayClient:
                 for row in payload.get("results", []):
                     key = str(row.get("key", ""))
                     mode = str(row.get("mode", "UNKNOWN")).upper()
-                    if mode not in {"DAWN", "DAY", "UNKNOWN"}:
+                    if mode not in {"DAWN", "DAY", "UNAVAILABLE", "UNKNOWN"}:
                         mode = "UNKNOWN"
                     if key:
                         results[key] = PolicyResult(mode=mode, error=str(row.get("error", "")))

@@ -30,7 +30,7 @@ from .services.kurly import kurly_client
 from .services.naver import naver_client
 
 
-app = FastAPI(title="새벽배송/익일배송 분류", docs_url=None, redoc_url=None)
+app = FastAPI(title="새벽배송/익일배송/배송불가 분류", docs_url=None, redoc_url=None)
 
 
 @app.on_event("startup")
@@ -41,13 +41,58 @@ def startup():
 
 @app.get("/healthz")
 def healthz():
-    return {"ok": True, "build": "naver-relay-confirm-v1"}
+    return {"ok": True, "build": "shipping-unavailable-v1"}
 
 
 @app.get("/", response_class=HTMLResponse)
 def index():
     html = (Path(__file__).parent / "templates" / "index.html").read_text(encoding="utf-8")
     return HTMLResponse(html)
+
+
+def _is_delivery_unavailable_result(result) -> bool:
+    """컬리 API가 정상 응답했지만 이용 가능한 배송서비스가 없는 경우를 구분합니다.
+
+    최신 Mac relay가 UNAVAILABLE을 반환하면 그대로 사용하고, 이전 relay와의
+    호환성을 위해 HTTP 오류가 아닌 정상 JSON 응답에서 DAWN/DAY를 찾지 못한
+    기존 메시지도 배송불가로 해석합니다. 네트워크/인증/429/HTTP 오류는
+    판정 실패로 남깁니다.
+    """
+    mode = str(getattr(result, "mode", "") or "").upper()
+    if mode == "UNAVAILABLE":
+        return True
+    if mode != "UNKNOWN":
+        return False
+
+    error = str(getattr(result, "error", "") or "").strip()
+    compact = error.replace(" ", "")
+    unavailable_markers = (
+        "배송불가",
+        "배송가능한서비스가없",
+        "이용가능한배송서비스가없",
+        "배송서비스없",
+        "배송지역이아닙니다",
+        "지원하지않는배송지",
+    )
+    if any(marker in compact for marker in unavailable_markers):
+        return True
+
+    # 현재 설치된 Mac relay의 정상 JSON + 서비스 없음 응답 호환용 메시지
+    return error == "응답에서 새벽/익일 배송 유형을 판별하지 못했습니다."
+
+
+def _unavailable_order_record(row) -> dict:
+    # 배송불가 상세보기용 연락처도 기존 연락처 선택 규칙을 그대로 사용합니다.
+    # 구매자 010 -> 구매자, 아니면 수취인 010 -> 수취인, 둘 다 아니면
+    # 구매자 번호(없으면 수취인 번호)를 표시합니다.
+    _, phone, _ = select_contact_phone(row.buyer_phone, row.recipient_phone)
+    return {
+        "order_id": row.order_id,
+        "name": (row.buyer_name or "이름없음").strip(),
+        "phone": phone or "연락처 없음",
+        "address": row.address,
+        "zip_code": row.zip_code,
+    }
 
 
 def _public_job(meta: dict) -> dict:
@@ -114,6 +159,8 @@ def _public_job(meta: dict) -> dict:
             "already_confirmed_locally": len(confirmed),
             "pending_product_orders": len(set(dawn_ids) - confirmed),
         },
+        # 배송불가는 익일 신규 연락/연락이력과 완전히 분리된 단순 조회 정보입니다.
+        "unavailable_orders": meta.get("unavailable_orders", []),
         "unknowns": meta.get("unknowns", []),
         "contact_history": _serialize_stats(contact_history_stats()),
     }
@@ -159,6 +206,7 @@ async def analyze(file: UploadFile = File(...)):
 
     dawn_rows = []
     day_rows = []
+    unavailable_rows = []
     unknown_rows = []
     for row in rows:
         result = policy_results[row.address_key]
@@ -166,7 +214,10 @@ async def analyze(file: UploadFile = File(...)):
             dawn_rows.append(row)
         elif result.mode == "DAY":
             day_rows.append(row)
+        elif _is_delivery_unavailable_result(result):
+            unavailable_rows.append(row)
         else:
+            # 네트워크/인증/주소 오류 등 진짜 판정 실패만 이쪽에 남깁니다.
             unknown_rows.append((row, result.error))
 
     job_id, job_dir = new_job_dir()
@@ -203,6 +254,17 @@ async def analyze(file: UploadFile = File(...)):
             # 같은 주문의 다른 상품 행에서 더 좋은(휴대전화) 연락처가 발견되면 교체
             nextday_by_order[r.order_id] = candidate
 
+    # 배송불가 주문은 신규 연락 대상/연락이력에 넣지 않습니다.
+    # 같은 주문에 상품 행이 여러 개여도 상세보기에는 주문번호 기준 1건만 표시합니다.
+    unavailable_by_order: dict[str, dict] = {}
+    for r in unavailable_rows:
+        candidate = _unavailable_order_record(r)
+        existing = unavailable_by_order.get(r.order_id)
+        if existing is None:
+            unavailable_by_order[r.order_id] = candidate
+        elif existing.get("phone") == "연락처 없음" and candidate.get("phone") != "연락처 없음":
+            unavailable_by_order[r.order_id] = candidate
+
     unknown_by_address = {}
     for r, error in unknown_rows:
         unknown_by_address.setdefault(
@@ -221,6 +283,10 @@ async def analyze(file: UploadFile = File(...)):
         "nextday_product_orders": len({r.product_order_id for r in day_rows}),
         "nextday_orders": len(nextday_by_order),
         "nextday_addresses": len({r.address_key for r in day_rows}),
+        "unavailable_rows": len(unavailable_rows),
+        "unavailable_product_orders": len({r.product_order_id for r in unavailable_rows}),
+        "unavailable_orders": len(unavailable_by_order),
+        "unavailable_addresses": len({r.address_key for r in unavailable_rows}),
         "unknown_rows": len(unknown_rows),
         "unknown_addresses": len(unknown_by_address),
         "sheet": sheet_meta,
@@ -231,6 +297,7 @@ async def analyze(file: UploadFile = File(...)):
         "summary": summary,
         "dawn_product_order_ids": dawn_product_order_ids,
         "nextday_orders": list(nextday_by_order.values()),
+        "unavailable_orders": list(unavailable_by_order.values()),
         "unknowns": list(unknown_by_address.values()),
     }
     save_meta(job_dir, meta)
